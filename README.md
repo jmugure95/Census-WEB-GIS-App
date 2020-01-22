@@ -9,5 +9,5 @@ The objective of this project is to automate the population census data collecti
 - Rest framework
 - Postgresql
 
-### Copyright
-Copyright (C) 2019 Julia Wakaba.
+## Copyright
+Copyright (C) 2020 Julia Wakaba.
