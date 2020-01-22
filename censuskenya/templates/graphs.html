@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+{%load static%}
+{%load leaflet_tags%}
+    <head> 
+    {% leaflet_css %}     
+    {% leaflet_js %}        
+        <!-- META SECTION -->
+        <title>Population Analysis</title>            
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        
+       
+        <!-- END META SECTION -->
+        <link rel="stylesheet" type="text/css" href="{%static 'hchart/css/highcharts.css' %}"> 
+        <script type="text/javascript" src="{%static 'hchart/js/highcharts.js' %}"></script>
+        <!-- CSS INCLUDE -->        
+        <link rel="stylesheet" type="text/css" id="theme" href="{% static 'css/theme-default.css' %}"/>
+        <!-- EOF CSS INCLUDE -->  
+        <style type="text/css">
+            .info {
+                padding: 6px 8px;
+                font: 14px/16px Arial, Helvetica, sans-serif;
+                background: white;
+                background: rgba(255,255,255,0.8);
+                box-shadow: 0 0 15px rgba(0,0,0,0.2);
+                border-radius: 5px;
+            }
+            .info h4 {
+                margin: 0 0 5px;
+                color: #777;
+            }
+            .legend {
+                line-height: 18px;
+                color: #555;
+            }
+            .legend i {
+                width: 18px;
+                height: 18px;
+                float: left;
+                margin-right: 8px;
+                opacity: 0.7;
+            }
+            #choro{
+                height: 400px;
+            }
+        </style>                           
+    </head>
+    <body>
+        <!-- START PAGE CONTAINER -->
+        <div class="page-container">
+            
+            <!-- START PAGE SIDEBAR -->
+            <div class="page-sidebar">
+            <!-- START X-NAVIGATION -->
+            <ul class="x-navigation">
+                <li class="xn-logo">
+                    <a href="index.html">Census Kenya</a>
+                    <a href="#" class="x-navigation-control"></a>
+                </li>
+                <li class="xn-profile">
+                    <a href="#" class="profile-mini">
+                       <img src="{% static 'assets/images/users/avatar.jpg' %}" alt="Julie Wakaba"/>
+                    </a>
+                    <div class="profile">
+                        <div class="profile-image">
+                            <img src="{% static 'assets/images/users/avatar.jpg' %}" alt="Julie Wakaba"/>
+                        </div>
+                        <div class="profile-data">
+                            <div class="profile-data-name">Julia Wakaba</div>
+                            <div class="profile-data-title">Full Stack Web Developer</div>
+                        </div>
+                </li>
+                <li class="active">
+                    <a href="#"}">
+                        <span class="fa fa-desktop"></span>
+                        <span class="xn-text">Dashboard</span>
+                    </a>
+                </li>
+                <li class="xn-openable">
+                    <a href="#">
+                        <span class="fa fa-desktop"></span>
+                      <!--   <span class="fa fa-files-o"></span> -->
+                        <span class="xn-text">Navigation Panel</span>
+                    </a>
+                    <ul>
+                        <li>
+                            <a href="{% url 'home' %}">
+                                <span class="fa fa-map-marker"></span>
+                                <span class="xn-text">Home</span>
+                            </a>
+                        </li>
+                    </ul>
+                </li>
+                
+            
+            </ul>
+            </div>
+            <!-- END PAGE SIDEBAR -->
+            
+            <!-- PAGE CONTENT -->
+            <div class="page-content">
+                
+                <!-- START X-NAVIGATION VERTICAL -->
+                <ul class="x-navigation x-navigation-horizontal x-navigation-panel">
+                    <!-- TOGGLE NAVIGATION -->
+                    <li class="xn-icon-button">
+                        <a href="#" class="x-navigation-minimize"><span class="fa fa-dedent"></span></a>
+                    </li>
+                    <!-- SIGN OUT -->
+                    <li class="xn-icon-button pull-right">
+                        <a href="#" class="mb-control" data-box="#mb-signout"><span class="fa fa-sign-out"></span></a>                        
+                    </li> 
+                    <!-- END SIGN OUT -->
+           
+                   
+                </ul>
+                <!-- END X-NAVIGATION VERTICAL -->                     
+                
+                <!-- START BREADCRUMB -->
+                <ul class="breadcrumb">
+                    <li><a href="#">Home</a></li>
+                    <li class="active">Maps</li>
+                </ul>
+                <!-- END BREADCRUMB -->                
+                
+                <!-- PAGE TITLE -->
+                <div class="page-title">                    
+                    <h2><span class="fa fa-arrow-circle-o-left"></span> Maps</h2>
+                </div>
+                <!-- END PAGE TITLE -->                
+                
+                <!-- PAGE CONTENT WRAPPER -->
+                <div class="page-content-wrap">                
+                <script type="text/javascript" src="{%static 'leaflet/leaflet.ajax.js'%}"></script>    
+                    <script type="text/javascript">
+                        var info = L.control();
+                        var popul;
+                        function getColor(d) {
+                            return d > 1000 ? '#800026' :
+                                   d > 500  ? '#BD0026' :
+                                   d > 200  ? '#E31A1C' :
+                                   d > 100  ? '#FC4E2A' :
+                                   d > 50   ? '#FD8D3C' :
+                                   d > 20   ? '#FEB24C' :
+                                   d > 10   ? '#FED976' :
+                                              '#FFEDA0';
+                        }
+                        function style(feature) {
+                            return {
+                                fillColor: getColor(feature.properties.join_count),
+                                weight: 2,
+                                opacity: 1,
+                                color: 'white',
+                                dashArray: '3',
+                                fillOpacity: 0.7
+                            };
+                        }
+                        // interactivity
+                        function highlightFeature(e) {
+                            var layer = e.target;
+
+                            layer.setStyle({
+                                weight: 5,
+                                color: '#666',
+                                dashArray: '',
+                                fillOpacity: 0.7
+                            });
+                            info.update(layer.feature.properties);
+
+                           
+                        }
+                        //reset
+                        function resetHighlight(e) {
+                            popul.resetStyle(e.target);
+                            info.update();
+                        }
+                        //zoom
+                        function zoomToFeature(e) {
+                            map.fitBounds(e.target.getBounds());
+                        }
+                        //oneachfeature
+                        function onEachFeature(feature, layer) {
+                            layer.on({
+                                mouseover: highlightFeature,
+                                mouseout: resetHighlight,
+                                click: zoomToFeature
+                            });
+                        }
+                        function layer(map,options){ 
+                            var OpenStreetMap_Mapnik = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                                    maxZoom: 19,
+                                    attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                                });
+                            // Population
+                            popul = new L.GeoJSON.AJAX("{% url 'population' %}",{
+                                onEachFeature: onEachFeature,
+                                style:style
+                            }).addTo(map);
+
+                            //info Control
+                            
+
+                            info.onAdd = function (map) {
+                                this._div = L.DomUtil.create('div', 'info'); // create a div with a class "info"
+                                this.update();
+                                return this._div;
+                            };
+
+                            // method that we will use to update the control based on feature properties passed
+                            info.update = function (props) {
+                                this._div.innerHTML = '<h4>Watuka Population Density</h4>' +  (props ?
+                                    '<b>' + props.area_name + '</b><br />' + props.join_count + ' people / mi<sup>2</sup>'
+                                    : 'Hover over an EA');
+                            };
+
+                            info.addTo(map);
+
+                        //Legend
+                        var legend = L.control({position: 'bottomright'});
+
+                        legend.onAdd = function (map) {
+
+                            var div = L.DomUtil.create('div', 'info legend'),
+                                grades = [0, 10, 20, 50, 100, 200, 500, 1000],
+                                labels = [];
+
+                            // loop through our density intervals and generate a label with a colored square for each interval
+                            for (var i = 0; i < grades.length; i++) {
+                                div.innerHTML +=
+                                    '<i style="background:' + getColor(grades[i] + 1) + '"></i> ' +
+                                    grades[i] + (grades[i + 1] ? '&ndash;' + grades[i + 1] + '<br>' : '+');
+                            }
+
+                            return div;
+                        };
+
+                        legend.addTo(map);
+                        // Layer group
+                        var baseMaps = {
+                            "OSM": OpenStreetMap_Mapnik
+                        };
+
+                        var overlayMaps = {
+                            "layers": {
+                                "Boundary": datasets,
+                                "Head": heady
+                            }
+                        };
+                        L.control.groupedLayers(baseMaps,overlayMaps).addTo(map);
+                    };
+                    </script>
+                    <div class="row">
+                        <div class="col-md-6">                        
+                            <!-- START GOOGLE WORLD MAP -->
+                            <div class="panel panel-default">
+                                <div class="panel-heading">
+                                    <h3 class="panel-title">Population Density</h3>
+                                </div>
+                                <div class="panel-body panel-body-map">
+                                    <div id="Population Density" style="width: 100%; height: 300px;">
+                                        {% leaflet_map "choro" callback="window.layer" %}
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- END GOOGLE WORLD MAP-->
+                        </div>                                        
+                        <div class="col-md-6">                        
+                            <!-- START GOOGLE EUROPE MAP -->
+                            <div class="panel panel-default">
+                                <div class="panel-heading">
+                                    <h3 class="panel-title">Age Distribution</h3>
+                                    
+                                </div>
+                                <div class="panel-body panel-body-map">
+                                    <div id="Age Distribution" style="width: 100%; height: 300px;">
+                                        <div id="pyramidcontainer"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- END GOOGLE EUROPE MAP -->
+                        </div>
+                    </div>
+                    <br><br><br><br><br>
+                    <div class="row">
+                        <div class="col-md-6">                        
+                            <!-- START GOOGLE MAP WITH MARKER -->
+                            <div class="panel panel-default">
+                                <div class="panel-heading">
+                                    <h3 class="panel-title">Disability Distribution</h3>
+                                    
+                                </div>
+                                <div class="panel-body panel-body-map">
+                                    <div id="Disability Distribution" style="width: 100%; height: 300px;">
+                                        <div id="barchart"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- END GOOGLE MAP WITH MARKER -->
+                        </div>                                        
+                        <div class="col-md-6">                        
+
+                            <div class="panel panel-default">
+                                <div class="panel-heading">
+                                    <h3 class="panel-title">Gender Distribution</h3>
+                                                         
+                                </div>
+
+                                <div class="panel-body panel-body-map">
+                                    <div id="Gender Distribution" style="width: 100%; height: 300px;">
+                                        <div id="container"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+
+                   <br><br><br><br><br>
+                    <div class="row">
+                        <div class="col-md-6">                        
+                            <!-- START jVectorMap Europe -->
+                            <div class="panel panel-default">
+                                <div class="panel-heading">
+                                    <h3 class="panel-title">Marriage and Divorce rates</h3>
+                                    
+                                </div>
+                                <div class="panel-body panel-body-map">
+                                    <div id="Marriage and Divorce rates" style="width: 100%; height: 300px;">
+                                        <!-- <div id="mrchart"></div> -->
+                                        <div id="piecontainer"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- END jVectorMap Europe -->
+                        </div>
+
+                        <div class="col-md-6">                        
+                            <!-- START jVectorMap USA -->
+                            <div class="panel panel-default">
+                                <div class="panel-heading">
+                                    <h3 class="panel-title">Birth and Death Rates</h3>
+                                </div>
+                                <div class="panel-body panel-body-map">
+                                    <div id="Birth and Death Rates" style="width: 100%; height: 300px;">
+                                        <div id="dbchart"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- END jVectorMap USA -->
+                        </div>
+                    </div>
+                    <br><br><br><br><br>
+                </div>
+                <!-- PAGE CONTENT WRAPPER -->                                
+            </div>            
+            <!-- END PAGE CONTENT -->
+        </div>
+        <!-- END PAGE CONTAINER -->
+        <!-- Script -->
+         <script type="text/javascript">
+             
+                Highcharts.chart('dbchart', {
+                    chart: {
+                        type: 'column'
+                    },
+                    title: {
+                        text: ''
+                    },
+                    xAxis: {
+                        categories: ['Death Rate','Birth Rate']
+                    },
+                    yAxis: {
+                            title:{
+                                text: 'Number per Gender'
+                            },
+                        },
+                    series: [ {
+                        name: 'Year 2018',
+                        data: [{{Dr}},{{Br}}],
+                       
+                    }]
+                    // Rabbitmq
+                });
+                    Highcharts.chart('container', {
+                    chart: {
+                        type: 'column'
+                    },
+                    title: {
+                        text: ''
+                    },
+                    xAxis: {
+                        categories: {{labels|safe}}
+                    },
+                    yAxis: {
+                            title:{
+                                text: 'Number per Gender'
+                            },
+                        },
+                    series: [ {
+                        name: 'Year 2018',
+                        data: {{gy|safe}},
+                       
+                    }]
+                    // Rabbitmq
+                });
+                    // bar 2
+                Highcharts.chart('barchart', {
+                    chart: {
+                        type: 'column'
+                    },
+                    title: {
+                        text: ''
+                    },
+                    xAxis: {
+                        categories: {{disl|safe}}
+                    },
+                    yAxis: {
+                            title:{
+                                text: 'Number per Disability'
+                            },
+                        },
+                    series: [ {
+                        name: 'Year 2018',
+                        data: {{dy|safe}},
+                       
+                    }]
+                    // Rabbitmq
+                });
+
+            // piechart
+               Highcharts.chart('piecontainer', {
+                chart: {
+                    plotBackgroundColor: null,
+                    plotBorderWidth: null,
+                    plotShadow: false,
+                    type: 'pie'
+                },
+                title: {
+                    text: ''
+                },
+                tooltip: {
+                    pointFormat: '{series.name}: <b>{point.percentage:.1f}%</b>'
+                },
+                plotOptions: {
+                    pie: {
+                        allowPointSelect: true,
+                        cursor: 'pointer',
+                        dataLabels: {
+                            enabled: true,
+                            format: '<b>{point.name}</b>: {point.percentage:.1f} %',
+                            style: {
+                                color: (Highcharts.theme && Highcharts.theme.contrastTextColor) || 'black'
+                            }
+                        }
+                    }
+                },
+                series: [{
+                    name: 'Brands',
+                    colorByPoint: true,
+                    data: [{
+                        name: 'Married',
+                        y: {{Mr}},
+                        sliced: true,
+                        selected: true
+                    }, {
+                        name: 'Divorced',
+                        y: {{Dir}}
+                    }]
+                }]
+            });
+
+
+               //Age Distribution Pyramid
+            // Age categories
+var categories = [
+    '0-10', '11-20', '21-30', '31-40',
+    '41-50', '51-60', '61-70', '71-80', '81-90','91-100'
+   
+];
+
+Highcharts.chart('pyramidcontainer', {
+    chart: {
+        type: 'bar'
+    },
+    title: {
+        text: ''
+    },
+    subtitle: {
+        text: ''
+    },
+    xAxis: [{
+        categories: categories,
+        reversed: false,
+        labels: {
+            step: 1
+        }
+    }, { // mirror axis on right side
+        opposite: true,
+        reversed: false,
+        categories: categories,
+        linkedTo: 0,
+        labels: {
+            step: 1
+        }
+    }],
+    yAxis: {
+        title: {
+            text: null
+        },
+        labels: {
+            formatter: function () {
+                return Math.abs(this.value) + '%';
+            }
+        }
+    },
+
+    plotOptions: {
+        series: {
+            stacking: 'normal'
+        }
+    },
+
+    tooltip: {
+        formatter: function () {
+            return '<b>' + this.series.name + ', age ' + this.point.category + '</b><br/>' +
+                'Population: ' + Highcharts.numberFormat(Math.abs(this.point.y), 0);
+        }
+    },
+
+    series: [{
+        name: 'Male',
+        data:{{mag|safe}}
+    }, {
+        name: 'Female',
+        data: {{fag|safe}}
+    }]
+});
+                </script>
+        <!-- end -->
+        <!-- MESSAGE BOX-->
+        <div class="message-box animated fadeIn" data-sound="alert" id="mb-signout">
+            <div class="mb-container">
+                <div class="mb-middle">
+                    <div class="mb-title"><span class="fa fa-sign-out"></span> Log <strong>Out</strong> ?</div>
+                    <div class="mb-content">
+                        <p>Are you sure you want to log out?</p>                    
+                        <p>Press No if youwant to continue work. Press Yes to logout current user.</p>
+                    </div>
+                    <div class="mb-footer">
+                        <div class="pull-right">
+                            <a href="pages-login.html" class="btn btn-success btn-lg">Yes</a>
+                            <button class="btn btn-default btn-lg mb-control-close">No</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- END MESSAGE BOX-->
+             
+
+    <!-- START SCRIPTS -->
+    <!-- START SCRIPTS -->
+        <!-- START PLUGINS -->
+        <script type="text/javascript" src="{%static 'js/plugins/jquery/jquery.min.js' %}"></script>
+        <script type="text/javascript" src="{%static 'js/plugins/jquery/jquery-ui.min.js' %}"></script>
+        <script type="text/javascript" src="{%static 'js/plugins/bootstrap/bootstrap.min.js' %}"></script>        
+        <!-- END PLUGINS -->
+        <script type="text/javascript" src="{%static 'gplayer/leaflet.groupedlayercontrol.min.js' %}"></script>
+        <!-- START THIS PAGE PLUGINS-->        
+        <script type='text/javascript' src="{%static 'js/plugins/icheck/icheck.min.js' %}"></script>        
+        <script type="text/javascript" src="{%static 'js/plugins/mcustomscrollbar/jquery.mCustomScrollbar.min.js' %}"></script>
+        <script type="text/javascript" src="{%static 'js/plugins/scrolltotop/scrolltopcontrol.js' %}"></script>
+        
+        <script type="text/javascript" src="{%static 'js/plugins/morris/raphael-min.js' %}"></script>
+        <script type="text/javascript" src="{%static 'js/plugins/morris/morris.min.js' %}"></script>       
+        <script type="text/javascript" src="{%static 'js/plugins/rickshaw/d3.v3.js' %}"></script>
+        <script type="text/javascript" src="{%static 'js/plugins/rickshaw/rickshaw.min.js' %}"></script>
+        <!-- <script type='text/javascript' src="{%static 'js/plugins/jvectormap/jquery-jvectormap-1.2.2.min.js' %}"></script>
+        <script type='text/javascript' src="{%static 'js/plugins/jvectormap/jquery-jvectormap-world-mill-en.js' %}"></script>   -->              
+        <script type='text/javascript' src="{%static 'js/plugins/bootstrap/bootstrap-datepicker.js' %}"></script>                
+        <script type="text/javascript" src="{%static 'js/plugins/owl/owl.carousel.min.js' %}"></script>                 
+        
+        <script type="text/javascript" src="{%static 'js/plugins/moment.min.js' %}"></script>
+        <script type="text/javascript" src="{%static 'js/plugins/daterangepicker/daterangepicker.js' %}"></script>
+        <!-- END THIS PAGE PLUGINS-->        
+
+        <!-- START TEMPLATE -->
+        <!-- <script type="text/javascript" src="{%static 'js/settings.js' %}"></script> -->
+        
+        <script type="text/javascript" src="{%static 'js/plugins.js' %}"></script>        
+        <script type="text/javascript" src="{%static 'js/actions.js' %}"></script>
+        
+        <script type="text/javascript" src="{%static 'js/demo_dashboard.js' %}"></script>
+        <!-- END TEMPLATE -->
+    <!-- END SCRIPTS -->         
+    </body>
+</html>
+
+
+
+
+
+
